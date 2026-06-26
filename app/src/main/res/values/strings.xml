@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ProfileDetection</string>
+    <string name="accessibility_service_label">Profile Copilot</string>
+    <string name="accessibility_service_description">Lets Profile Copilot read the current screen (on your tap) to suggest personalized openers. Used only on this device.</string>
+</resources>
