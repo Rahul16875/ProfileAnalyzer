@@ -1,6 +1,6 @@
 # Profile Copilot
 
-A personal Android app that suggests **flirty, personalized opening messages** for dating
+A personal Android app that suggests **personalized opening messages** for dating
 profiles (e.g. Hinge). Tap a floating bubble while viewing a profile — the app scrolls
 through it, screenshots it, sends the images to **Gemini (vision)**, and shows 5 ready-to-send
 openers in a panel. Tap one to copy it, then paste it into the dating app yourself.
