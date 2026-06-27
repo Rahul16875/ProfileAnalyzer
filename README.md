@@ -19,8 +19,6 @@ Tapping the bubble opens a quick chooser:
   replies to her last message (or conversation starters if it's quiet).
   *Replies come as a mix of Hinglish and simple English so you can choose.*
 
-Each suggestion is tagged with its tone + language, e.g. `FLIRTY · HINGLISH · reply`.
-Flirty / romantic suggestions are listed first.
 
 ## Refining suggestions
 
