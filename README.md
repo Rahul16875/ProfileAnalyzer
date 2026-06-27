@@ -20,6 +20,17 @@ Tapping the bubble opens a quick chooser:
   *Replies come as a mix of Hinglish and simple English so you can choose.*
 
 Each suggestion is tagged with its tone + language, e.g. `FLIRTY · HINGLISH · reply`.
+Flirty / romantic suggestions are listed first.
+
+## Refining suggestions
+
+Below the 5 suggestions:
+
+- **Re-roll chips** — *Funnier · Bolder · Shorter · Flirtier*. Tap one to re-run the same mode
+  with that twist applied to all 5 (a targeted nudge instead of a full reset).
+- **Regenerate** — a completely fresh set.
+- **Avoid repeats** — the app remembers recently suggested lines and asks the model not to repeat
+  or reword them, so re-rolls and regenerates stay fresh.
 
 ## How it works
 

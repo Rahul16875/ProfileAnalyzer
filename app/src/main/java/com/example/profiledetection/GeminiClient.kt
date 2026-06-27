@@ -258,7 +258,14 @@ Return ONLY the JSON described by the schema.
                 )
             }
         }
-        return out
+        // Show flirty/romantic suggestions first (stable sort keeps the rest in order).
+        return out.sortedBy { tonePriority(it.tone) }
+    }
+
+    /** Flirty/romantic tones rank first (0), everything else after (1). */
+    private fun tonePriority(tone: String): Int {
+        val t = tone.lowercase()
+        return if (t.contains("flirt") || t.contains("roman")) 0 else 1
     }
 
     /** Strip "AI tells" from the text — mainly em/en dashes and double hyphens. */
