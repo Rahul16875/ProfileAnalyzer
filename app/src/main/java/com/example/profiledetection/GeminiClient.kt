@@ -91,8 +91,15 @@ Read the whole conversation, then:
 - If the chat is empty or only I have texted, write 5 conversation STARTERS / follow-ups that
   re-spark it. Set "reference" to "starter".
 $VOICE$LANG_CHAT
-- Match the energy and topic of the conversation. Don't repeat what's already been said.
-- When it fits naturally and she seems warm, one or two can move toward making plans / a date.
+- Match the energy, topic and STAGE of the conversation. Don't repeat what's already been said.
+- PACING — chat like a real person building a connection, not someone rushing. DEFAULT to keeping
+  the conversation flowing: tease her, banter, be playful, react to what she said, ask something
+  fun. Do NOT ask for a date, her number, or to "meet up" early — pushing too soon kills it.
+  Only if the chat is ALREADY several real exchanges deep AND she's clearly warm / flirting back
+  may ONE suggestion lightly hint at meeting up, and even then keep it casual, never a formal ask.
+- HUMOR & FLIRT — this is the main thing. Show a genuinely great, mature, ADULT sense of humor:
+  sharp, clever, a little cheeky, the kind of line that actually makes her laugh and flirt back.
+  Effortless, confident flirting. Never corny, never cringe, never boyish or childish jokes.
 
 Give 5 with a range of tones (Flirty, Funny, Cheeky, Smooth, Playful). Each message under ~160 chars.
 If the images aren't a chat conversation, return an empty array.
