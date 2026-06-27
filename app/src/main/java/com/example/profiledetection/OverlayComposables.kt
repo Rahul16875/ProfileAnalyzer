@@ -7,6 +7,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -85,6 +87,7 @@ fun PanelContent(
     onClose: () -> Unit,
     onChoose: (Mode) -> Unit,
     onRegenerate: () -> Unit,
+    onReroll: (String) -> Unit,
     onCopy: (Suggestion) -> Unit,
 ) {
     if (!state.panelOpen) return
@@ -153,9 +156,15 @@ fun PanelContent(
                 }
             }
 
+            // Re-roll chips only when we actually have suggestions showing.
+            if (state.suggestions.isNotEmpty() && !state.loading && !state.showChooser) {
+                Spacer(Modifier.size(10.dp))
+                RerollChips(onReroll)
+            }
+
             // Regenerate only makes sense once we're showing results/error, not the chooser.
             if (!state.loading && !state.showChooser) {
-                Spacer(Modifier.size(4.dp))
+                Spacer(Modifier.size(8.dp))
                 Button(
                     onClick = onRegenerate,
                     modifier = Modifier.fillMaxWidth(),
@@ -164,6 +173,32 @@ fun PanelContent(
                     Text("Regenerate", color = Color.White)
                 }
             }
+        }
+    }
+}
+
+private val REROLL_TWISTS = listOf(
+    "Funnier" to "Make them noticeably funnier — sharper, cleverer humor.",
+    "Bolder" to "Make them bolder and more confidently flirty (still not cheesy or creepy).",
+    "Shorter" to "Make them much shorter and punchier — just a few words each.",
+    "Flirtier" to "Make them more flirty and charming.",
+)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RerollChips(onReroll: (String) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        REROLL_TWISTS.forEach { (label, twist) ->
+            Text(
+                label,
+                color = TextPrimary,
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(CardBg)
+                    .clickable { onReroll(twist) }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
         }
     }
 }

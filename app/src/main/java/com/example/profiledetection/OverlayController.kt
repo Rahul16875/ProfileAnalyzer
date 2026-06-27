@@ -23,7 +23,7 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
  */
 class OverlayController(
     private val context: Context,
-    private val onAnalyze: (Mode) -> Unit,
+    private val onAnalyze: (Mode, twist: String?) -> Unit,
 ) {
     private val windowManager = context.getSystemService(WindowManager::class.java)
     private val state = OverlayState()
@@ -73,7 +73,12 @@ class OverlayController(
     private fun choose(mode: Mode) {
         lastMode = mode
         state.showChooser = false
-        onAnalyze(mode)
+        onAnalyze(mode, null)
+    }
+
+    /** Re-run the last mode with a tweak ("funnier", "bolder", …) or null to just regenerate. */
+    private fun reroll(twist: String?) {
+        onAnalyze(lastMode, twist)
     }
 
     fun setLoading() {
@@ -177,7 +182,8 @@ class OverlayController(
                     state = state,
                     onClose = { closePanel() },
                     onChoose = { choose(it) },
-                    onRegenerate = { choose(lastMode) },
+                    onRegenerate = { reroll(null) },
+                    onReroll = { twist -> reroll(twist) },
                     onCopy = { copyToClipboard(it.message) },
                 )
             }

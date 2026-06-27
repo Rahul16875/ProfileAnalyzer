@@ -33,11 +33,14 @@ class CopilotAccessibilityService : AccessibilityService() {
     private var overlay: OverlayController? = null
     private var capturing = false
 
+    // Lines suggested earlier this session, so re-rolls/regenerates don't repeat them.
+    private val recentMessages = ArrayDeque<String>()
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         overlay = OverlayController(
             context = this,
-            onAnalyze = { mode -> onAnalyzeRequested(mode) },
+            onAnalyze = { mode, twist -> onAnalyzeRequested(mode, twist) },
         ).also { it.show() }
     }
 
@@ -52,7 +55,7 @@ class CopilotAccessibilityService : AccessibilityService() {
         scope.cancel()
     }
 
-    private fun onAnalyzeRequested(mode: Mode) {
+    private fun onAnalyzeRequested(mode: Mode, twist: String?) {
         if (capturing) return
         val controller = overlay ?: return
 
@@ -84,7 +87,14 @@ class CopilotAccessibilityService : AccessibilityService() {
                 // 4. Now it's safe to show the loading panel and call the model.
                 controller.setLoading()
                 Log.d(TAG, "Captured ${shots.size} screenshot(s); sending to model")
-                val suggestions = GeminiClient.generateSuggestions(shots, apiKey, mode)
+                val suggestions = GeminiClient.generateSuggestions(
+                    jpegShots = shots,
+                    apiKey = apiKey,
+                    mode = mode,
+                    twist = twist,
+                    avoid = recentMessages.toList(),
+                )
+                rememberMessages(suggestions)
                 controller.showSuggestions(suggestions)
             } catch (e: Exception) {
                 Log.e(TAG, "analyze failed", e)
@@ -94,6 +104,12 @@ class CopilotAccessibilityService : AccessibilityService() {
                 capturing = false
             }
         }
+    }
+
+    /** Keep the last ~25 suggested lines so future runs don't repeat them. */
+    private fun rememberMessages(suggestions: List<Suggestion>) {
+        suggestions.forEach { recentMessages.addLast(it.message) }
+        while (recentMessages.size > 25) recentMessages.removeFirst()
     }
 
     /**

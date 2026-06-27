@@ -68,6 +68,9 @@ Read EVERYTHING first — every photo and every prompt+answer — then write 5 o
 $VOICE$LANG_PROFILE
 - Each opener references a SPECIFIC detail from HER profile (a prompt answer, a hobby, something in a
   photo) so it's obvious I actually looked. Never a line that could be copy-pasted to anyone.
+- Go for a DISTINCTIVE or overlooked detail — the thing most guys would skip, not the obvious
+  "nice smile" everyone comments on. Standing out beats playing safe.
+- Make at least one a light, easy QUESTION she'll enjoy answering — questions get replies.
 - A couple can playfully hint at meeting up tied to something she likes (don't bluntly ask her out yet).
 
 For EACH opener give a short "reference" (under ~40 chars) for what it replies to:
@@ -100,22 +103,47 @@ $VOICE$LANG_CHAT
 - HUMOR & FLIRT — this is the main thing. Show a genuinely great, mature, ADULT sense of humor:
   sharp, clever, a little cheeky, the kind of line that actually makes her laugh and flirt back.
   Effortless, confident flirting. Never corny, never cringe, never boyish or childish jokes.
+- KEEP HER ENGAGED — if the conversation is going stale, repetitive, dry, or one-word, do NOT keep
+  flogging the same dead topic. Pivot to something fresh: bring up a new, interesting topic or a
+  playful/curious question (tie it to her profile or something said earlier when you can) that's
+  easy and fun for her to run with and re-sparks her interest. Set "reference" to "new topic" for
+  any suggestion that changes the subject. Always give her something to reply to, never a dead end.
+- READ HER INTEREST — if she's clearly into it, escalate the flirt/banter a notch; if she's dry,
+  short, or hasn't replied, re-hook with something fun and confident — never needy or apologetic.
+- Match her ENERGY and message length, and span the 5 from safe to bold so I can pick my comfort level.
 
-Give 5 with a range of tones (Flirty, Funny, Cheeky, Smooth, Playful). Each message under ~160 chars.
+Give 5 with a range of tones (Flirty, Funny, Cheeky, Playful, plus at least one fresh "new topic").
+Each message under ~160 chars.
 If the images aren't a chat conversation, return an empty array.
 Return ONLY the JSON described by the schema.
 """
 
-    /** Calls the model with one or more screenshots. Throws on network/HTTP/parse errors. */
+    /**
+     * Calls the model with one or more screenshots.
+     * @param twist optional re-roll instruction (e.g. "make them funnier"), null for a fresh run.
+     * @param avoid previously-suggested lines the model must not repeat.
+     */
     suspend fun generateSuggestions(
         jpegShots: List<ByteArray>,
         apiKey: String,
         mode: Mode,
+        twist: String? = null,
+        avoid: List<String> = emptyList(),
     ): List<Suggestion> =
         withContext(Dispatchers.IO) {
-            val prompt = if (mode == Mode.CHAT) CHAT_PROMPT else PROFILE_PROMPT
+            val basePrompt = if (mode == Mode.CHAT) CHAT_PROMPT else PROFILE_PROMPT
+            val prompt = buildString {
+                append(basePrompt.trim())
+                if (!twist.isNullOrBlank()) {
+                    append("\n\nEXTRA INSTRUCTION (applies to all 5): ").append(twist.trim())
+                }
+                if (avoid.isNotEmpty()) {
+                    append("\n\nDo NOT repeat or barely reword any of these already-suggested lines:")
+                    avoid.takeLast(25).forEach { append("\n- ").append(it) }
+                }
+            }
             // Parts: the instruction text first, then every screenshot as an image part.
-            val parts = JSONArray().put(JSONObject().put("text", prompt.trim()))
+            val parts = JSONArray().put(JSONObject().put("text", prompt))
             for (jpeg in jpegShots) {
                 parts.put(
                     JSONObject().put(
