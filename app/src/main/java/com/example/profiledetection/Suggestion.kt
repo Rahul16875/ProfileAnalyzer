@@ -1,8 +1,12 @@
 package com.example.profiledetection
 
-/** One generated opener: its tone, what it references, and the message itself. */
+/** What the user wants help with when they tap the bubble. */
+enum class Mode { PROFILE, CHAT }
+
+/** One generated suggestion: its tone, language, what it references, and the text itself. */
 data class Suggestion(
     val tone: String,
-    val reference: String, // e.g. "Prompt: The way to win me over is…" or "Photo 2"
+    val lang: String,      // "Hinglish" or "English"
+    val reference: String, // profile: "Photo 2" / "Prompt: …"; chat: "reply" / "starter"
     val message: String,
 )

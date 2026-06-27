@@ -37,8 +37,7 @@ class CopilotAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         overlay = OverlayController(
             context = this,
-            onBubbleTap = { onAnalyzeRequested() },
-            onRegenerate = { onAnalyzeRequested() },
+            onAnalyze = { mode -> onAnalyzeRequested(mode) },
         ).also { it.show() }
     }
 
@@ -53,14 +52,14 @@ class CopilotAccessibilityService : AccessibilityService() {
         scope.cancel()
     }
 
-    private fun onAnalyzeRequested() {
+    private fun onAnalyzeRequested(mode: Mode) {
         if (capturing) return
         val controller = overlay ?: return
 
         val apiKey = BuildConfig.GEMINI_API_KEY
         if (apiKey.isBlank()) {
             controller.showError(
-                "No Gemini API key. Add GEMINI_API_KEY to local.properties and rebuild the app."
+                "No API key. Add GEMINI_API_KEY to local.properties and rebuild the app."
             )
             return
         }
@@ -72,20 +71,20 @@ class CopilotAccessibilityService : AccessibilityService() {
                 controller.prepareForCapture()
                 delay(180) // let the bubble actually disappear from the rendered frame
 
-                // 2. Scroll back to the top first (in case we started mid/bottom of profile).
+                // 2. Scroll back to the top first (in case we started mid/bottom of the screen).
                 scrollToTop()
 
-                // 3. Scroll through the whole profile, capturing each screen.
+                // 3. Scroll through the whole screen (profile or chat), capturing each frame.
                 val shots = captureProfile()
                 if (shots.isEmpty()) {
                     controller.showError("Couldn't read the screen. Try again.")
                     return@launch
                 }
 
-                // 3. Now it's safe to show the loading panel and call Gemini.
+                // 4. Now it's safe to show the loading panel and call the model.
                 controller.setLoading()
-                Log.d(TAG, "Captured ${shots.size} screenshot(s); sending to Gemini")
-                val suggestions = GeminiClient.generateOpeners(shots, apiKey)
+                Log.d(TAG, "Captured ${shots.size} screenshot(s); sending to model")
+                val suggestions = GeminiClient.generateSuggestions(shots, apiKey, mode)
                 controller.showSuggestions(suggestions)
             } catch (e: Exception) {
                 Log.e(TAG, "analyze failed", e)

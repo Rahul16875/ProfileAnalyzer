@@ -24,52 +24,91 @@ object GeminiClient {
     // Only retry genuine server overload. NEVER retry 429 — that just burns more quota.
     private val RETRYABLE = setOf(500, 502, 503, 504)
 
-    private const val PROMPT = """
-You're my smoothest, most charming friend helping me win over a girl I matched with on Hinge.
-GOAL: make her genuinely interested in ME — spark attraction, make her smile, make her want to
-reply fast, and set up the vibe that leads to a date. The images are consecutive screenshots
-scrolled through ONE girl's profile — all her photos, prompts, answers and interests. Treat them
-as one continuous profile.
-
-Read EVERYTHING first — every photo and every prompt+answer — then write 5 opening messages.
-
+    // Shared voice rules used by both modes (language rules differ per mode).
+    private const val VOICE = """
 VOICE — sound like a confident, charming, flirty MAN texting, NOT an AI:
-- Mature and grounded — flirt with the calm confidence of a grown man, not a boy. Never cheesy,
-  hyper, needy, or trying too hard. Subtle and self-assured beats loud and over-the-top.
-- Flirty and romantic with real charm — make her feel noticed and a little swept up, smoothly.
-  Warm and a bit bold, never thirsty, desperate, or creepy.
-- SIMPLE, everyday English — basic common words anyone can understand, including someone whose
-  first language isn't English. No fancy or literary vocabulary, no big or rare words, no poetry.
+- Mature and grounded — the calm confidence of a grown man, not a boy. Never cheesy, hyper,
+  needy, or trying too hard. Subtle and self-assured beats loud and over-the-top.
+- Flirty and a little romantic with real charm — warm and a bit bold, never thirsty or creepy.
 - Genuinely witty — playful teasing and clever lines that show personality and create a spark.
 - Casual texting style: contractions, relaxed grammar, lowercase fine. Short, punchy, easy to reply to.
-- Build intrigue — leave her curious and wanting to keep talking. A couple of them can playfully
-  hint at meeting up or a date idea tied to something she likes (don't bluntly ask her out yet).
-- Each opener references a SPECIFIC detail from HER profile (a prompt answer, a hobby, something in a
-  photo) so it's obvious I actually looked. Never a line that could be copy-pasted to anyone.
 
 BANNED (these scream "AI" or "cringe") — never do any of these:
 - Starting with "Hey", "Hi", "So", or her name.
 - Pickup-line clichés ("are you a…", "running through my mind", "caught my eye", "must be tired…").
 - Generic compliments ("you seem fun/cool/interesting", "love your vibe", "you're gorgeous").
-- Corporate-polite or over-explained phrasing, em dashes, and emoji-stuffing (one emoji max, only if it lands).
+- Corporate-polite or over-explained phrasing, em dashes, emoji-stuffing (one emoji max, only if it lands).
+"""
 
-For EACH opener also give a short "reference" saying exactly what on her profile it replies to:
-- If it's about a prompt, write: Prompt: <the prompt question in a few words>
-- If it's about a photo, number the photos in the order they appear top-to-bottom and write:
-  Photo 1, Photo 2, etc. (add 2-3 words on what's in it, e.g. "Photo 2 (hiking)").
-- If it's about an interest/bio detail, name it briefly.
-Keep the reference under ~40 characters.
+    // Profile openers: always plain English (safer first impression).
+    private const val LANG_PROFILE = """
+LANGUAGE — write ALL 5 openers in SIMPLE everyday English (basic common words anyone can
+understand, no fancy/rare words, no poetry). Do NOT use Hindi or Hinglish. Set "lang" to "English"
+for every one.
+"""
 
-Give 5 with a range: Flirty, Romantic, Cheeky, Smooth, Playful (one each). Keep each message under ~160 characters.
-If the images aren't a dating profile or there's too little to work with, return an empty array.
+    // Chat replies: a mix so I can choose.
+    private const val LANG_CHAT = """
+LANGUAGE — give a MIX so I can choose:
+- Make about half the suggestions "Hinglish" and half "English".
+- Hinglish = Hindi written in Roman/English letters mixed naturally with English, the way young
+  Indians actually text (e.g. "arre tum bhi coffee lover ho? chalo kabhi perfect cup dhoondte hain").
+  Keep it casual and natural, NOT formal/shudh Hindi, NOT Devanagari script.
+- English = SIMPLE everyday English — basic common words anyone can understand, no fancy/rare words.
+- Tag each suggestion's lang as exactly "Hinglish" or "English".
+"""
+
+    private val PROFILE_PROMPT = """
+You're my smoothest, most charming friend helping me win over a girl I matched with.
+GOAL: make her genuinely interested in ME — spark attraction, make her smile, make her want to
+reply fast. The images are consecutive screenshots scrolled through ONE girl's profile — all her
+photos, prompts, answers and interests. Treat them as one continuous profile.
+
+Read EVERYTHING first — every photo and every prompt+answer — then write 5 opening messages.
+$VOICE$LANG_PROFILE
+- Each opener references a SPECIFIC detail from HER profile (a prompt answer, a hobby, something in a
+  photo) so it's obvious I actually looked. Never a line that could be copy-pasted to anyone.
+- A couple can playfully hint at meeting up tied to something she likes (don't bluntly ask her out yet).
+
+For EACH opener give a short "reference" (under ~40 chars) for what it replies to:
+- A prompt → "Prompt: <question in a few words>".
+- A photo → number photos top-to-bottom: "Photo 2 (hiking)".
+- An interest/bio detail → name it briefly.
+
+Give 5 with a range of tones (Flirty, Romantic, Cheeky, Smooth, Playful). Each message under ~160 chars.
+If the images aren't a profile or there's too little to work with, return an empty array.
 Return ONLY the JSON described by the schema.
 """
 
-    /** Calls Gemini with one or more screenshots. Throws on network/HTTP/parse errors. */
-    suspend fun generateOpeners(jpegShots: List<ByteArray>, apiKey: String): List<Suggestion> =
+    private val CHAT_PROMPT = """
+You're my smoothest, most charming friend helping me text a girl I matched with. The images are
+consecutive screenshots of our CHAT conversation, scrolled from top (oldest) to bottom (newest).
+Work out who said what from the layout — MY messages are usually right-aligned, HERS left-aligned.
+
+Read the whole conversation, then:
+- If she has sent messages, write 5 great REPLIES to her LATEST message that keep things going,
+  move the vibe forward, and make her want to reply. Set "reference" to "reply".
+- If the chat is empty or only I have texted, write 5 conversation STARTERS / follow-ups that
+  re-spark it. Set "reference" to "starter".
+$VOICE$LANG_CHAT
+- Match the energy and topic of the conversation. Don't repeat what's already been said.
+- When it fits naturally and she seems warm, one or two can move toward making plans / a date.
+
+Give 5 with a range of tones (Flirty, Funny, Cheeky, Smooth, Playful). Each message under ~160 chars.
+If the images aren't a chat conversation, return an empty array.
+Return ONLY the JSON described by the schema.
+"""
+
+    /** Calls the model with one or more screenshots. Throws on network/HTTP/parse errors. */
+    suspend fun generateSuggestions(
+        jpegShots: List<ByteArray>,
+        apiKey: String,
+        mode: Mode,
+    ): List<Suggestion> =
         withContext(Dispatchers.IO) {
+            val prompt = if (mode == Mode.CHAT) CHAT_PROMPT else PROFILE_PROMPT
             // Parts: the instruction text first, then every screenshot as an image part.
-            val parts = JSONArray().put(JSONObject().put("text", PROMPT.trim()))
+            val parts = JSONArray().put(JSONObject().put("text", prompt.trim()))
             for (jpeg in jpegShots) {
                 parts.put(
                     JSONObject().put(
@@ -134,14 +173,18 @@ Return ONLY the JSON described by the schema.
                     "properties",
                     JSONObject()
                         .put("tone", JSONObject().put("type", "STRING"))
+                        .put("lang", JSONObject().put("type", "STRING"))
                         .put("reference", JSONObject().put("type", "STRING"))
                         .put("message", JSONObject().put("type", "STRING"))
                 )
                 .put(
                     "required",
-                    JSONArray().put("tone").put("reference").put("message")
+                    JSONArray().put("tone").put("lang").put("reference").put("message")
                 )
-                .put("propertyOrdering", JSONArray().put("tone").put("reference").put("message"))
+                .put(
+                    "propertyOrdering",
+                    JSONArray().put("tone").put("lang").put("reference").put("message")
+                )
         )
     }
 
@@ -173,6 +216,7 @@ Return ONLY the JSON described by the schema.
                 out.add(
                     Suggestion(
                         tone = o.optString("tone", "Opener").trim(),
+                        lang = o.optString("lang").trim(),
                         reference = o.optString("reference").trim(),
                         message = message,
                     )

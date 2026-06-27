@@ -83,6 +83,7 @@ fun BubbleContent(
 fun PanelContent(
     state: OverlayState,
     onClose: () -> Unit,
+    onChoose: (Mode) -> Unit,
     onRegenerate: () -> Unit,
     onCopy: (Suggestion) -> Unit,
 ) {
@@ -108,7 +109,7 @@ fun PanelContent(
             // Header
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Openers",
+                    if (state.showChooser) "What do you need?" else "Suggestions",
                     color = TextPrimary,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
@@ -128,6 +129,7 @@ fun PanelContent(
             Spacer(Modifier.size(12.dp))
 
             when {
+                state.showChooser -> Chooser(onChoose)
                 state.loading -> LoadingRow()
                 state.error != null -> Text(
                     state.error!!,
@@ -135,7 +137,7 @@ fun PanelContent(
                     fontSize = 14.sp,
                 )
                 state.suggestions.isEmpty() -> Text(
-                    "No openers — make sure a dating profile is on screen, then tap the bubble again.",
+                    "Nothing to suggest — make sure the profile or chat is on screen, then try again.",
                     color = TextSecondary,
                     fontSize = 14.sp,
                 )
@@ -151,7 +153,8 @@ fun PanelContent(
                 }
             }
 
-            if (!state.loading) {
+            // Regenerate only makes sense once we're showing results/error, not the chooser.
+            if (!state.loading && !state.showChooser) {
                 Spacer(Modifier.size(4.dp))
                 Button(
                     onClick = onRegenerate,
@@ -166,6 +169,26 @@ fun PanelContent(
 }
 
 @Composable
+private fun Chooser(onChoose: (Mode) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Button(
+            onClick = { onChoose(Mode.PROFILE) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Purple),
+        ) {
+            Text("👤  Openers (from her profile)", color = Color.White)
+        }
+        Button(
+            onClick = { onChoose(Mode.CHAT) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Pink),
+        ) {
+            Text("💬  Reply (from your chat)", color = Color.White)
+        }
+    }
+}
+
+@Composable
 private fun LoadingRow() {
     Row(verticalAlignment = Alignment.CenterVertically) {
         CircularProgressIndicator(
@@ -174,7 +197,7 @@ private fun LoadingRow() {
             strokeWidth = 2.dp,
         )
         Spacer(Modifier.width(12.dp))
-        Text("Reading the profile…", color = TextSecondary, fontSize = 14.sp)
+        Text("Reading the screen…", color = TextSecondary, fontSize = 14.sp)
     }
 }
 
@@ -190,19 +213,18 @@ private fun SuggestionItem(suggestion: Suggestion, onCopy: (Suggestion) -> Unit)
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // e.g. "FLIRTY · HINGLISH · Photo 2"
+            val label = buildString {
+                append(suggestion.tone.uppercase())
+                if (suggestion.lang.isNotEmpty()) append("  ·  ${suggestion.lang.uppercase()}")
+                if (suggestion.reference.isNotEmpty()) append("  ·  ${suggestion.reference}")
+            }
             Text(
-                suggestion.tone.uppercase(),
+                label,
                 color = Pink,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
             )
-            if (suggestion.reference.isNotEmpty()) {
-                Text(
-                    "  ·  ${suggestion.reference}",
-                    color = TextFaint,
-                    fontSize = 11.sp,
-                )
-            }
         }
         Text(suggestion.message, color = TextPrimary, fontSize = 15.sp)
         Text("Tap to copy", color = TextFaint, fontSize = 11.sp)

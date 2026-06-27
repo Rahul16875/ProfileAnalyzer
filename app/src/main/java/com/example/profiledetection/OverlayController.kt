@@ -23,11 +23,11 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
  */
 class OverlayController(
     private val context: Context,
-    private val onBubbleTap: () -> Unit,
-    private val onRegenerate: () -> Unit,
+    private val onAnalyze: (Mode) -> Unit,
 ) {
     private val windowManager = context.getSystemService(WindowManager::class.java)
     private val state = OverlayState()
+    private var lastMode = Mode.PROFILE
 
     private val bubbleOwner = OverlayLifecycleOwner()
     private val panelOwner = OverlayLifecycleOwner()
@@ -58,11 +58,28 @@ class OverlayController(
         panelView = null
     }
 
-    // ---- State transitions called from the Service ----
+    // ---- State transitions ----
+
+    /** Bubble tap → show the "Openers vs Reply" picker. */
+    private fun showChooser() {
+        state.loading = false
+        state.error = null
+        state.suggestions = emptyList()
+        state.showChooser = true
+        state.panelOpen = true
+        refreshPanelTouchability()
+    }
+
+    private fun choose(mode: Mode) {
+        lastMode = mode
+        state.showChooser = false
+        onAnalyze(mode)
+    }
 
     fun setLoading() {
         state.error = null
         state.suggestions = emptyList()
+        state.showChooser = false
         state.loading = true
         state.panelOpen = true
         refreshPanelTouchability()
@@ -94,6 +111,7 @@ class OverlayController(
      */
     fun prepareForCapture() {
         state.loading = false
+        state.showChooser = false
         state.panelOpen = false
         refreshPanelTouchability()
         bubbleView?.visibility = View.INVISIBLE
@@ -126,7 +144,7 @@ class OverlayController(
             setContent {
                 BubbleContent(
                     loading = state.loading,
-                    onTap = onBubbleTap,
+                    onTap = { showChooser() },
                     onDrag = { dx, dy ->
                         bubbleParams.x += dx.toInt()
                         bubbleParams.y += dy.toInt()
@@ -158,7 +176,8 @@ class OverlayController(
                 PanelContent(
                     state = state,
                     onClose = { closePanel() },
-                    onRegenerate = onRegenerate,
+                    onChoose = { choose(it) },
+                    onRegenerate = { choose(lastMode) },
                     onCopy = { copyToClipboard(it.message) },
                 )
             }
@@ -191,8 +210,8 @@ class OverlayController(
 
     private fun copyToClipboard(text: String) {
         val clipboard = context.getSystemService(ClipboardManager::class.java)
-        clipboard.setPrimaryClip(ClipData.newPlainText("opener", text))
-        Toast.makeText(context, "Copied — paste it in Hinge", Toast.LENGTH_SHORT).show()
+        clipboard.setPrimaryClip(ClipData.newPlainText("message", text))
+        Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
         closePanel()
     }
 
