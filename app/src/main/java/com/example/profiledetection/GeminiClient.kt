@@ -85,8 +85,9 @@ Return ONLY the JSON described by the schema.
 
     private val CHAT_PROMPT = """
 You're my smoothest, most charming friend helping me text a girl I matched with. The images are
-consecutive screenshots of our CHAT conversation, scrolled from top (oldest) to bottom (newest).
-Work out who said what from the layout — MY messages are usually right-aligned, HERS left-aligned.
+the MOST RECENT screenshots of our CHAT (older at the top, newest at the bottom) — focus on the
+latest messages, especially HER last one. Work out who said what from the layout — MY messages are
+usually right-aligned, HERS left-aligned.
 
 Read the whole conversation, then:
 - If she has sent messages, write 5 great REPLIES to her LATEST message that keep things going,

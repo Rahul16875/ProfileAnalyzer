@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.ByteArrayOutputStream
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * The brains of the copilot. On a bubble tap it:
@@ -74,11 +75,15 @@ class CopilotAccessibilityService : AccessibilityService() {
                 controller.prepareForCapture()
                 delay(180) // let the bubble actually disappear from the rendered frame
 
-                // 2. Scroll back to the top first (in case we started mid/bottom of the screen).
-                scrollToTop()
-
-                // 3. Scroll through the whole screen (profile or chat), capturing each frame.
-                val shots = captureProfile()
+                // 2. Capture depends on mode:
+                //    PROFILE → scroll to the top, then capture the whole profile.
+                //    CHAT    → only the latest messages (don't read the whole history).
+                val shots = if (mode == Mode.CHAT) {
+                    captureChat()
+                } else {
+                    scrollToTop()
+                    captureProfile()
+                }
                 if (shots.isEmpty()) {
                     controller.showError("Couldn't read the screen. Try again.")
                     return@launch
@@ -136,6 +141,45 @@ class CopilotAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * Chat capture: only the LATEST messages, never the whole history. Go to the bottom
+     * (newest), then grab the current screen plus a little above it, and return them in
+     * chronological order (oldest of these first) for the model.
+     */
+    private suspend fun captureChat(): List<ByteArray> {
+        scrollToBottom()
+        val shots = ArrayList<ByteArray>()
+        var previous = captureOne()
+        if (previous != null) shots.add(previous)
+
+        var taken = 1
+        while (taken < MAX_CHAT_SHOTS) {
+            if (!swipeDown()) break // scroll up to slightly older messages
+            delay(550.milliseconds)
+            val shot = captureOne() ?: break
+            if (previous != null && shot.contentEquals(previous)) break // reached the top
+            shots.add(shot)
+            previous = shot
+            taken++
+        }
+        shots.reverse() // oldest → newest so the conversation reads in order
+        return shots
+    }
+
+    /** Scroll down to the newest message (in case the chat was scrolled up). */
+    private suspend fun scrollToBottom() {
+        var previous = captureOne()
+        var guard = 0
+        while (guard < MAX_SCROLL_STEPS) {
+            if (!swipeUp()) break
+            delay(450.milliseconds)
+            val current = captureOne()
+            if (current != null && previous != null && current.contentEquals(previous)) break
+            previous = current
+            guard++
+        }
+    }
+
+    /**
      * Scroll up to the top of the profile before capturing, so we always start from the
      * first photo regardless of where the user tapped. Screenshots here are local/free
      * (no API cost) — used only to detect when scrolling stops (top reached).
@@ -145,7 +189,7 @@ class CopilotAccessibilityService : AccessibilityService() {
         var guard = 0
         while (guard < MAX_SCROLL_STEPS) {
             if (!swipeDown()) break
-            delay(550)
+            delay(550.milliseconds)
             val current = captureOne()
             if (current != null && previous != null && current.contentEquals(previous)) break
             previous = current
@@ -227,7 +271,8 @@ class CopilotAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "ProfileCopilot"
-        private const val MAX_SHOTS = 6        // max screenshots sent to Gemini (downward pass)
-        private const val MAX_SCROLL_STEPS = 8 // max swipes used to reach the top first
+        private const val MAX_SHOTS = 6        // profile: max screenshots in the downward pass
+        private const val MAX_CHAT_SHOTS = 3   // chat: only the latest few screens
+        private const val MAX_SCROLL_STEPS = 8 // max swipes used to reach the top/bottom
     }
 }
