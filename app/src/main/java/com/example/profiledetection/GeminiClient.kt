@@ -70,15 +70,16 @@ $VOICE$LANG_PROFILE
   photo) so it's obvious I actually looked. Never a line that could be copy-pasted to anyone.
 - Go for a DISTINCTIVE or overlooked detail — the thing most guys would skip, not the obvious
   "nice smile" everyone comments on. Standing out beats playing safe.
-- Make at least one a light, easy QUESTION she'll enjoy answering — questions get replies.
-- A couple can playfully hint at meeting up tied to something she likes (don't bluntly ask her out yet).
+- Do NOT phrase openers as questions or open-ended questions. Each must be a confident, flirty
+  STATEMENT — a playful tease or smooth line about a specific detail that impresses her.
 
 For EACH opener give a short "reference" (under ~40 chars) for what it replies to:
 - A prompt → "Prompt: <question in a few words>".
 - A photo → number photos top-to-bottom: "Photo 2 (hiking)".
 - An interest/bio detail → name it briefly.
 
-Give 5 with a range of tones (Flirty, Romantic, Cheeky, Smooth, Playful). Each message under ~160 chars.
+Give 5 with a range of tones (Flirty, Romantic, Cheeky, Smooth, Playful). Keep each opener SHORT
+and punchy — one line, ideally under ~90 characters. No long messages.
 If the images aren't a profile or there's too little to work with, return an empty array.
 Return ONLY the JSON described by the schema.
 """
